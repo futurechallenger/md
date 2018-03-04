@@ -129,9 +129,360 @@ this.setState(prevState => ({ expanded: !prevState.expanded }))
 
 ## 拆解组件
 
+```js
+import React, { Component } from 'react'
+import { observer } from 'mobx-react'
+
+import { string, object } from 'prop-types'
+import ExpandableForm from './ExpandableForm'
+import './styles/ProfileContainer.css'
+
+export default class ProfileContainer extends Component {
+  state = { expanded: false }
+ 
+  static propTypes = {
+    model: object.isRequired,
+    title: string
+  }
+ 
+  static defaultProps = {
+    model: {
+      id: 0
+    },
+    title: 'Your Name'
+  }
+
+  handleSubmit = (e) => {
+    e.preventDefault()
+    this.props.model.save()
+  }
+  
+  handleNameChange = (e) => {
+    this.props.model.changeName(e.target.value)
+  }
+  
+  handleExpand = (e) => {
+    e.preventDefault()
+    this.setState(prevState => ({ expanded: !prevState.expanded }))
+  }
+  
+  render() {
+    const {
+      model,
+      title
+    } = this.props
+    return ( 
+      <ExpandableForm 
+        onSubmit={this.handleSubmit} 
+        expanded={this.state.expanded} 
+        onExpand={this.handleExpand}>
+        <div>
+          <h1>{title}</h1>
+          <input
+            type="text"
+            value={model.name}
+            onChange={this.handleNameChange}
+            placeholder="Your Name"/>
+        </div>
+      </ExpandableForm>
+    )
+  }
+}
+```
+有多行的`props`的，每一个prop都应该单独占一行。就如上例一样。要达到这个目标最好的方法是使用一套工具：`Prettier`。
+
+## 装饰器（Decorator）
+```js
+@observer
+export default class ProfileContainer extends Component {
+```
+如果你了解某些库，比如*mobx*，你就可以使用上例的方式来修饰类组件。装饰器就是把类组件作为一个参数传入了一个方法。
+
+[装饰器][5]可以编写更灵活、更有可读性的组件。如果你不想用装饰器，你可以这样：
+```js
+class ProfileContainer extends Component {
+  // Component code
+}
+export default observer(ProfileContainer)
+```
+
+## 闭包
+尽量避免在子组件中传入闭包，如：
+```js
+<input
+  type="text"
+  value={model.name}
+  // onChange={(e) => { model.name = e.target.value }}
+  // ^ Not this. Use the below:
+  onChange={this.handleChange}
+  placeholder="Your Name"/>
+```
+**注意**：如果`input`是一个React组件的话，这样自动触发它的重绘，不管其他的props是否发生了改变。
+
+一致性检验是React最消耗资源的部分。不要把额外的工作加到这里。处理上例中的问题最好的方法是传入一个类方法，这样还会更加易读，更容易调试。如：
+```js
+import React, { Component } from 'react'
+import { observer } from 'mobx-react'
+import { string, object } from 'prop-types'
+// Separate local imports from dependencies
+import ExpandableForm from './ExpandableForm'
+import './styles/ProfileContainer.css'
+
+// Use decorators if needed
+@observer
+export default class ProfileContainer extends Component {
+  state = { expanded: false }
+  // Initialize state here (ES7) or in a constructor method (ES6)
+ 
+  // Declare propTypes as static properties as early as possible
+  static propTypes = {
+    model: object.isRequired,
+    title: string
+  }
+
+  // Default props below propTypes
+  static defaultProps = {
+    model: {
+      id: 0
+    },
+    title: 'Your Name'
+  }
+
+  // Use fat arrow functions for methods to preserve context (this will thus be the component instance)
+  handleSubmit = (e) => {
+    e.preventDefault()
+    this.props.model.save()
+  }
+  
+  handleNameChange = (e) => {
+    this.props.model.name = e.target.value
+  }
+  
+  handleExpand = (e) => {
+    e.preventDefault()
+    this.setState(prevState => ({ expanded: !prevState.expanded }))
+  }
+  
+  render() {
+    // Destructure props for readability
+    const {
+      model,
+      title
+    } = this.props
+    return ( 
+      <ExpandableForm 
+        onSubmit={this.handleSubmit} 
+        expanded={this.state.expanded} 
+        onExpand={this.handleExpand}>
+        // Newline props if there are more than two
+        <div>
+          <h1>{title}</h1>
+          <input
+            type="text"
+            value={model.name}
+            // onChange={(e) => { model.name = e.target.value }}
+            // Avoid creating new closures in the render method- use methods like below
+            onChange={this.handleNameChange}
+            placeholder="Your Name"/>
+        </div>
+      </ExpandableForm>
+    )
+  }
+}
+```
+
+## 方法组件
+这类组件没有state没有props，也没有方法。它们是纯组件，包含了最少的引起变化的内容。经常使用它们。
+
+### propTypes
+```js
+import React from 'react'
+import { observer } from 'mobx-react'
+import { func, bool } from 'prop-types'
+import './styles/Form.css'
+ExpandableForm.propTypes = {
+  onSubmit: func.isRequired,
+  expanded: bool
+}
+// Component declaration
+```
+我们在组件的声明之前就定义了`propTypes`。
+
+### 分解Props和defaultProps
+```js
+import React from 'react'
+import { observer } from 'mobx-react'
+import { func, bool } from 'prop-types'
+import './styles/Form.css'
+
+ExpandableForm.propTypes = {
+  onSubmit: func.isRequired,
+  expanded: bool,
+  onExpand: func.isRequired
+}
+
+function ExpandableForm(props) {
+  const formStyle = props.expanded ? {height: 'auto'} : {height: 0}
+  return (
+    <form style={formStyle} onSubmit={props.onSubmit}>
+      {props.children}
+      <button onClick={props.onExpand}>Expand</button>
+    </form>
+  )
+}
+```
+我们的组件是一个方法。它的参数就是`props`。我们可以这样扩展这个组件：
+```js
+import React from 'react'
+import { observer } from 'mobx-react'
+import { func, bool } from 'prop-types'
+import './styles/Form.css'
+
+ExpandableForm.propTypes = {
+  onSubmit: func.isRequired,
+  expanded: bool,
+  onExpand: func.isRequired
+}
+
+function ExpandableForm({ onExpand, expanded = false, children, onSubmit }) {
+  const formStyle = expanded ? {height: 'auto'} : {height: 0}
+  return (
+    <form style={formStyle} onSubmit={onSubmit}>
+      {children}
+      <button onClick={onExpand}>Expand</button>
+    </form>
+  )
+}
+```
+现在我们也可以使用默认参数来扮演默认props的角色，这样有很好的可读性。如果`expanded`没有定义，那么我们就把它设置为`false`。
+
+但是，尽量避免使用如下的例子：
+```js
+const ExpandableForm = ({ onExpand, expanded, children }) => {
+```
+看起来很现代，但是这个方法是未命名的。
+
+如果你的Babel配置正确，未命名的方法并不会是什么大问题。但是，如果Babel有问题的话，那么这个组件里的任何错误都显示为发生在 <<anonymous>>里的，这调试起来就非常麻烦了。
+
+匿名方法也会引起Jest其他的问题。由于会引起各种难以理解的问题，而且也没有什么实际的好处。我们推荐使用`function`，少使用`const`。
+
+### 装饰方法组件
+由于方法组件没法使用装饰器，只能把它作为参数传入别的方法里。
+```js
+import React from 'react'
+import { observer } from 'mobx-react'
+import { func, bool } from 'prop-types'
+import './styles/Form.css'
+
+ExpandableForm.propTypes = {
+  onSubmit: func.isRequired,
+  expanded: bool,
+  onExpand: func.isRequired
+}
+
+function ExpandableForm({ onExpand, expanded = false, children, onSubmit }) {
+  const formStyle = expanded ? {height: 'auto'} : {height: 0}
+  return (
+    <form style={formStyle} onSubmit={onSubmit}>
+      {children}
+      <button onClick={onExpand}>Expand</button>
+    </form>
+  )
+}
+export default observer(ExpandableForm)
+```
+
+只能这样处理：`export default observer(ExpandableForm)`。
+
+这就是组件的全部代码：
+```js
+import React from 'react'
+import { observer } from 'mobx-react'
+import { func, bool } from 'prop-types'
+// Separate local imports from dependencies
+import './styles/Form.css'
+
+// Declare propTypes here, before the component (taking advantage of JS function hoisting)
+// You want these to be as visible as possible
+ExpandableForm.propTypes = {
+  onSubmit: func.isRequired,
+  expanded: bool,
+  onExpand: func.isRequired
+}
+
+// Destructure props like so, and use default arguments as a way of setting defaultProps
+function ExpandableForm({ onExpand, expanded = false, children, onSubmit }) {
+  const formStyle = expanded ? { height: 'auto' } : { height: 0 }
+  return (
+    <form style={formStyle} onSubmit={onSubmit}>
+      {children}
+      <button onClick={onExpand}>Expand</button>
+    </form>
+  )
+}
+
+// Wrap the component instead of decorating it
+export default observer(ExpandableForm)
+```
+
+## 条件判断
+某些情况下，你会做很多的条件判断：
+```js
+<div id="lb-footer">
+  {props.downloadMode && currentImage && !currentImage.video && currentImage.blogText
+  ? !currentImage.submitted && !currentImage.posted
+  ? <p>Please contact us for content usage</p>
+    : currentImage && currentImage.selected
+      ? <button onClick={props.onSelectImage} className="btn btn-selected">Deselect</button>
+      : currentImage && currentImage.submitted
+        ? <button className="btn btn-submitted" disabled>Submitted</button>
+        : currentImage && currentImage.posted
+          ? <button className="btn btn-posted" disabled>Posted</button>
+          : <button onClick={props.onSelectImage} className="btn btn-unselected">Select post</button>
+  }
+</div>
+```
+这么多层的条件判断可不是什么好现象。
+
+有第三方库[JSX-Control Statements](https://github.com/AlexGilleran/jsx-control-statements)可以解决这个问题。但是与其增加一个依赖，还不如这样来解决：
+```js
+<div id="lb-footer">
+  {
+    (() => {
+      if(downloadMode && !videoSrc) {
+        if(isApproved && isPosted) {
+          return <p>Right click image and select "Save Image As.." to download</p>
+        } else {
+          return <p>Please contact us for content usage</p>
+        }
+      }
+
+      // ...
+    })()
+  }
+</div>
+```
+使用大括号包起来的[IIFE](https://stackoverflow.com/questions/8228281/what-is-the-function-construct-in-javascript)，然后把你的`if`表达式都放进去。返回你要返回的组件。
+
+
+## 最后
+
+再次，希望本文对你有用。如果你有什么好的意见或者建议的话请写在下面的评论里。谢谢！
+
+
+
+
+
+
+
+
+
+
+
 
 [1]:https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0#.kuvqndiqq
 [2]:https://stackoverflow.com/questions/35662932/react-constructor-es6-vs-es7
 [3]:https://github.com/facebook/prop-types
 [4]:https://medium.com/@indiesquidge
+[5]:http://javascript.info/call-apply-decorators
 [css in javascript]: https://medium.freecodecamp.org/a-5-minute-intro-to-styled-components-41f40eb7cd55

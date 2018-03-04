@@ -1,0 +1,90 @@
+#打造Redux中间件
+
+## 简单的
+基本中间件：
+```javascript
+const customMiddleware = store => next => action => {
+	if(action.type !== 'CUSTOM_ACT_TYPE') {
+		return next(action)
+		// 其他代码
+	}
+}
+```
+使用：
+```javascript
+import {createStore, applyMiddleware} from 'redux';
+import reducer from './reducer';
+import customMiddleware from './customMiddleware';
+
+const store = createStore(reducer, applyMiddleware(customMiddleware));
+```
+
+`store => next => action =>`看起来很复杂有木有。基本上你是在写一个一层一层往外返回的方法，调用的时候是这样的：
+```javascript
+let dispatched = null;
+let next = actionAttempt => dispatched = actionAttempt;
+
+const dispatch = customMiddleware(store)(next);
+
+dispatch({
+  type: 'custom',
+  value: 'test'
+});
+```
+
+你做的只是串行化的函数调用，并在每次的调用上传入适当的参数。当我第一次看到这个的时候，我也被这么长的函数调用串惊呆了。但是，在读了[编写redux测试](http://redux.js.org/docs/recipes/WritingTests.html)之后就理解是怎么回事了。
+
+所以现在我们理解了函数调用串是怎么工作的了，我们来解释一下这个中间件的第一行代码：
+```javascript
+if(action.type !== 'custom') {
+	return next(action);
+}
+```
+应该有什么办法可以区分什么action可以被中间件使用。在这个例子里，我们判断action的type为*非custom*的时候就调用`next`方法，其他的会传导到其他的中间件里知道reducer。
+
+## 来点酷的
+redux的[官方指导](http://redux.js.org/docs/advanced/Middleware.html)里有几个不错的例子，我在这里详细解释一下。
+
+我们有一个这样的action：
+```javascript
+dispatch({
+  type: 'ajax',
+  url: 'http://some-api.com',
+  method: 'POST',
+  body: state => ({
+    title: state.title,
+    description: state.description
+  }),
+  cb: response => console.log('finished', response)
+})
+```
+
+我们要实现一个POST请求，然后调用`cb`这个回调方法。看起来是这样的:
+```javascript
+import fetch from 'isomorphic-fetch'
+
+const ajaxMiddleware = store => next => action => {
+	if(action.type !== 'ajax') return next(action);
+
+	fetch(action.url, {
+		method: action.method,
+		body: JSON.stringify(action.body(store.getState()))
+	}).then(response => response.json())
+	.then(json => action.cb(json))
+}
+```
+非常的简单。你可以在中间件里调用redux提供的每一个方法。如果我们要回调方法dispatch更多的action该如何处理呢？
+```javascript
+.then(json => action.cb(json, store.dispatch))
+```
+只要修改上例的最后一行就可以搞定。
+
+然后在回调方法定义里，我们可以这样：
+```javascript
+cb: (response, dispatch) => dispatch(newAction(response))
+```
+As you can see, middleware is very easy to write in redux. You can pass store state back to actions, and so much more. If you need any help or if I didn’t go into detail enough, feel free to leave a comment below!
+
+如你所见，redux中间件非常容易实现。
+
+
