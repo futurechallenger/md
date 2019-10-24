@@ -1,0 +1,52 @@
+{
+  "name": "typescript-example",
+  "version": "1.0.0",
+  "description": "Web Worker in Typescript",
+  "main": "server.js",
+  "repository": "https://github.com/futurechallenger/producer-consumer-example",
+  "author": "Uncle Charlie",
+  "engines": {
+    "node": "10.x"
+  },
+  "scripts": {
+    "type-check": "./node_modules/.bin/tsc --noEmit",
+    "type-check:watch": "yarn type-check -- --watch",
+    "build": "./node_modules/.bin/webpack",
+    "build:types": "./node_modules/.bin/tsc",
+    "heroku-postbuild": "./node_modules/.bin/webpack",
+    "start": "node server.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.18",
+    "@types/node": "^12.7.3",
+    "@types/randomstring": "^1.1.6",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.0.2",
+    "ts-loader": "^6.0.4",
+    "typescript": "^3.6.2",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.7",
+    "worker-loader": "^2.0.0"
+  },
+  "dependencies": {
+    "koa": "^2.8.1",
+    "koa-static": "^5.0.0",
+    "randomstring": "^1.1.5"
+  },
+  "keywords": [
+    "node",
+    "koa",
+    "typescript",
+    "Web Worker"
+  ],
+  "jest": {
+    "roots": [
+      "<rootDir>/__tests__"
+    ],
+    "transform": {
+      "^.+\\.ts?$": "ts-jest"
+    }
+  },
+  "license": "MIT"
+}
