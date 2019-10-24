@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": [
+      "es2015",
+      "dom",
+      "webworker"
+    ],
+    "declaration": false,
+    "downlevelIteration": true,
+    "sourceMap": true,
+    "outDir": "static/dist",
+    "strict": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": [
+        "src/*"
+      ],
+      "@tests":[
+        "__tests__/*"
+      ]
+    }
+  },
+  "include": ["src/**/*", "typings/**/*", "__tests__/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
