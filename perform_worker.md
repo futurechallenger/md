@@ -303,7 +303,7 @@ function execTaskSync() {
 
 这个任务量其实不够大，只会产生一个和后面例子对比的效果。先运行一下看看结果：
 
-![ui thread](./static/img/ui-thread.png)
+![ui thread](./img/perform-worker/ui-thread.png)
 
 运行结果看起来很快，如果需要更慢一些只需要把字符串数量或者字符串的长度调大就可以。运行的结果基本都在 0.xx ms 的范围内，只有一个是 2.27 ms。这也许只是一个现象，也许就很值得深究了。
 
@@ -331,7 +331,7 @@ ctx.onmessage = (event: MessageEvent) => {
 ```
 
 数据全部传过来之后，在 worker 连运行。结果是这样的：
-![in a worker](./static/img/in-worker.png)
+![in a worker](./img/perform-worker/in-worker.png)
 
 ### 在 Micro Queue 运行
 
@@ -380,7 +380,7 @@ class Queue {
 这个是在 Queue 里添加 task 的方法，在添加的时候就会在 task 运行完成之后调用 Queue 的 next 方法来开始下一个 task。
 
 在数据量同样的情况下运行的结果：
-![In queue](./static/img/in-queue.png)
+![In queue](./img/perform-workerin-queue.png)
 
 看起来和在主线程的运行结果相当的接近了。我们来把数据量加大看看会有什么结果。
 
@@ -396,7 +396,7 @@ const STR_LEN = 300;
 ### Run in Worker with Buffer
 
 这就体现出 Worker 存在的意义了。相应用户点击的速度一定会快很多。这个时候就需要`Buffer`出场了。我们来测试一下使用了 Buffer 的 Worker 会出现什么样的惊喜。
-![worker-buffer](./static/img/woker-buffer.png)
+![worker-buffer](./img/perform-worker/woker-buffer.png)
 
 明显在第一次消耗了很多时间之后，每次的调用都消耗了比直接调用 Worker 的`postMessage`更少的时间。使用 Buffer 来实现不同 Worker 之间传输数据就像是 C/C++的引用传递一样，这里不会涉及到数据的拷贝操作。所以节省了时间。
 
