@@ -380,7 +380,7 @@ class Queue {
 这个是在 Queue 里添加 task 的方法，在添加的时候就会在 task 运行完成之后调用 Queue 的 next 方法来开始下一个 task。
 
 在数据量同样的情况下运行的结果：
-![In queue](./img/perform-workerin-queue.png)
+![In queue](./img/perform-worker/in-queue.png)
 
 看起来和在主线程的运行结果相当的接近了。我们来把数据量加大看看会有什么结果。
 
